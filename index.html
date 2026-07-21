@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FoodFest – Delicious Foods With Wonderful Eating</title>
+  <meta name="description" content="Order delicious restaurant-quality food online. Up to 70% off today. Browse burgers, pizza, salads and more from top chefs." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- PRELOADER -->
+<div id="preloader">
+  <div class="preloader-inner">
+    <div class="preloader-logo">🍕</div>
+    <div class="preloader-brand">FoodFest</div>
+    <div class="preloader-bar"><div class="preloader-fill" id="preloader-fill"></div></div>
+    <p class="preloader-tag">Preparing something delicious...</p>
+  </div>
+</div>
+
+<!-- NAVBAR -->
+<header id="navbar">
+  <div class="container nav-container">
+    <a href="#hero" class="logo">
+      <span class="logo-icon">🍕</span>
+      <span class="logo-text">Food<span class="accent">Fest</span></span>
+    </a>
+    <nav class="nav-links" id="nav-links">
+      <a href="#hero" class="nav-link active">Home</a>
+      <a href="#menu" class="nav-link">Menu</a>
+      <a href="#chefs" class="nav-link">Chefs</a>
+      <a href="#blog" class="nav-link">Blog</a>
+      <a href="#contact" class="nav-link">Contact</a>
+    </nav>
+    <div class="nav-actions">
+      <button class="cart-btn" id="cart-btn" aria-label="Cart">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        <span class="cart-count" id="cart-count">0</span>
+      </button>
+      <button class="order-btn" id="order-now-nav">Order Now</button>
+      <button class="hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-shapes">
+    <div class="hs hs1"></div>
+    <div class="hs hs2"></div>
+    <div class="hs hs3"></div>
+  </div>
+  <div class="container hero-container">
+    <div class="hero-content">
+      <p class="hero-tag"><span class="tag-dot"></span>Daily Fresh Delivery</p>
+      <h1 class="hero-title">
+        Delicious Foods With<br/>
+        <span class="hero-highlight">Wonderful Eating</span>
+      </h1>
+      <p class="hero-sub">From farm to table — taste freshness in every bite. Hundreds of mouth-watering dishes, delivered in under 30 minutes.</p>
+      <div class="hero-search">
+        <span class="search-pin">📍</span>
+        <input type="text" id="hero-search-input" placeholder="Enter your delivery address..." />
+        <button class="search-btn" id="search-btn">Find Food</button>
+      </div>
+      <div class="hero-stats">
+        <div class="hstat">
+          <span class="hstat-num" data-target="500">0</span><span>+</span>
+          <p>Dishes</p>
+        </div>
+        <div class="hstat-divider"></div>
+        <div class="hstat">
+          <span class="hstat-num" data-target="200">0</span><span>+</span>
+          <p>Chefs</p>
+        </div>
+        <div class="hstat-divider"></div>
+        <div class="hstat">
+          <span class="hstat-num" data-target="10000">0</span><span>+</span>
+          <p>Customers</p>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="plate-ring r1"></div>
+      <div class="plate-ring r2"></div>
+      <div class="plate-ring r3"></div>
+      <img id="hero-img" src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=620&q=85&fit=crop" alt="Gourmet Burger" class="hero-main-img" />
+      <div class="float-badge fb1">
+        <span>🔥</span>
+        <div><strong>Hot Deal</strong><small>-40% Off</small></div>
+      </div>
+      <div class="float-badge fb2">
+        <span>⭐</span>
+        <div><strong>4.9 Rating</strong><small>Top Rated</small></div>
+      </div>
+      <div class="float-badge fb3">
+        <span>⚡</span>
+        <div><strong>30 min</strong><small>Fast Delivery</small></div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-wave">
+    <svg viewBox="0 0 1440 80" preserveAspectRatio="none"><path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill="#f8f9fa"/></svg>
+  </div>
+</section>
+
+<!-- OFFERS -->
+<section class="offers" id="offers">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge"><span>🎁</span> Special Deals</div>
+      <h2>Up To <span class="accent">70% Off</span> For This Day</h2>
+      <p>Grab these limited-time deals before they're gone!</p>
+    </div>
+    <div class="offers-grid" id="offers-grid"></div>
+  </div>
+</section>
+
+<!-- RESERVATION -->
+<section class="reservation" id="contact">
+  <div class="res-bg-overlay"></div>
+  <div class="container reservation-inner">
+    <div class="res-info">
+      <p class="res-tag">📅 Make a Reservation</p>
+      <h2>Book a Table &amp;<br/><span class="accent">Enjoy a Meal</span></h2>
+      <p>Reserve your spot and enjoy an unforgettable dining experience with our expert chefs crafting every dish with passion.</p>
+      <ul class="res-features">
+        <li><span>✅</span> Instant Confirmation</li>
+        <li><span>✅</span> Special Occasion Decoration</li>
+        <li><span>✅</span> Personal Chef Assignment</li>
+        <li><span>✅</span> Free Welcome Drink</li>
+      </ul>
+    </div>
+    <form class="res-form" id="res-form" autocomplete="off" novalidate>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="res-name">Full Name</label>
+          <input type="text" id="res-name" placeholder="John Doe" required />
+        </div>
+        <div class="form-group">
+          <label for="res-email">Email</label>
+          <input type="email" id="res-email" placeholder="john@email.com" required />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="res-phone">Phone</label>
+          <input type="tel" id="res-phone" placeholder="+1 555 000 0000" />
+        </div>
+        <div class="form-group">
+          <label for="res-guests">Guests</label>
+          <select id="res-guests">
+            <option>1 Person</option>
+            <option>2 People</option>
+            <option selected>4 People</option>
+            <option>6 People</option>
+            <option>8+ People</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="res-date">Date</label>
+          <input type="date" id="res-date" required />
+        </div>
+        <div class="form-group">
+          <label for="res-time">Time</label>
+          <input type="time" id="res-time" required />
+        </div>
+      </div>
+      <button type="submit" class="res-submit" id="res-submit">
+        <span>Book My Table</span>
+        <span class="btn-arrow">→</span>
+      </button>
+      <div class="form-success" id="form-success">🎉 Your table is booked! See you soon!</div>
+    </form>
+  </div>
+</section>
+
+<!-- POPULAR MENU -->
+<section class="menu-section" id="menu">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge"><span>🍽️</span> Our Menu</div>
+      <h2>Popular <span class="accent">Delicious Foods</span></h2>
+      <p>Hand-picked favourites loved by thousands of customers every day</p>
+    </div>
+    <div class="menu-filter" id="menu-filter">
+      <button class="filter-btn active" data-cat="all">All</button>
+      <button class="filter-btn" data-cat="burger">🍔 Burgers</button>
+      <button class="filter-btn" data-cat="pizza">🍕 Pizza</button>
+      <button class="filter-btn" data-cat="salad">🥗 Salads</button>
+      <button class="filter-btn" data-cat="pasta">🍝 Pasta</button>
+      <button class="filter-btn" data-cat="dessert">🍰 Desserts</button>
+    </div>
+    <div class="menu-grid" id="menu-grid"></div>
+  </div>
+</section>
+
+<!-- CHEFS -->
+<section class="chefs" id="chefs">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge"><span>👨‍🍳</span> Expert Team</div>
+      <h2>Meet Our <span class="accent">Expert Chefs</span></h2>
+      <p>Passionate culinary artists dedicated to extraordinary dining experiences</p>
+    </div>
+    <div class="chefs-grid" id="chefs-grid"></div>
+  </div>
+</section>
+
+<!-- CATEGORIES -->
+<section class="categories">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge"><span>🗂️</span> Browse</div>
+      <h2>Explore <span class="accent">Food Categories</span></h2>
+    </div>
+    <div class="cat-grid" id="cat-grid"></div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<section class="cta-banner">
+  <div class="cta-bg-anim" id="cta-bg"></div>
+  <div class="container cta-inner">
+    <div class="cta-text">
+      <h2>Buy Delicious Food<br/><span class="accent">For All Occasions</span></h2>
+      <p>Birthday parties, corporate events, romantic dinners — we cater it all with passion and flavour.</p>
+      <div class="cta-actions">
+        <button class="cta-primary" id="cta-order">Order Now 🚀</button>
+        <button class="cta-secondary" id="cta-learn">View Menu</button>
+      </div>
+    </div>
+    <div class="cta-img-wrap">
+      <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=520&q=85&fit=crop" alt="Food Spread" class="cta-img" />
+      <div class="cta-img-glow"></div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge light"><span>💬</span> Reviews</div>
+      <h2>Our Customer <span class="accent">Feedback</span></h2>
+      <p>Real words from real food lovers worldwide</p>
+    </div>
+    <div class="testi-wrapper">
+      <button class="testi-arrow testi-prev" id="testi-prev" aria-label="Previous">&#8249;</button>
+      <div class="testi-viewport">
+        <div class="testi-track" id="testi-track"></div>
+      </div>
+      <button class="testi-arrow testi-next" id="testi-next" aria-label="Next">&#8250;</button>
+    </div>
+    <div class="testi-dots" id="testi-dots"></div>
+  </div>
+</section>
+
+<!-- COUNTERS -->
+<section class="counters">
+  <div class="container counters-grid">
+    <div class="counter-item">
+      <div class="counter-icon">🍽️</div>
+      <div class="counter-num" data-target="15240">0</div>
+      <p>Orders Delivered</p>
+    </div>
+    <div class="counter-item">
+      <div class="counter-icon">👨‍🍳</div>
+      <div class="counter-num" data-target="85">0</div>
+      <p>Expert Chefs</p>
+    </div>
+    <div class="counter-item">
+      <div class="counter-icon">🌟</div>
+      <div class="counter-num" data-target="12000">0</div>
+      <p>Happy Customers</p>
+    </div>
+    <div class="counter-item">
+      <div class="counter-icon">🏆</div>
+      <div class="counter-num" data-target="35">0</div>
+      <p>Awards Won</p>
+    </div>
+  </div>
+</section>
+
+<!-- BLOG -->
+<section class="blog" id="blog">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge"><span>📰</span> Latest News</div>
+      <h2>Our Latest <span class="accent">Food Blog</span></h2>
+      <p>Tips, recipes and stories from our kitchen to yours</p>
+    </div>
+    <div class="blog-grid" id="blog-grid"></div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer" id="footer">
+  <div class="footer-top">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <a href="#hero" class="logo">
+          <span class="logo-icon">🍕</span>
+          <span class="logo-text">Food<span class="accent">Fest</span></span>
+        </a>
+        <p>Bringing joy one meal at a time. Fresh ingredients, expert chefs, fast delivery — that's our promise.</p>
+        <div class="footer-socials">
+          <a href="#" class="social-link" aria-label="Facebook">fb</a>
+          <a href="#" class="social-link" aria-label="Twitter">tw</a>
+          <a href="#" class="social-link" aria-label="Instagram">ig</a>
+          <a href="#" class="social-link" aria-label="YouTube">yt</a>
+        </div>
+      </div>
+      <div class="footer-links-group">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="#hero">Home</a></li>
+          <li><a href="#menu">Our Menu</a></li>
+          <li><a href="#chefs">Our Chefs</a></li>
+          <li><a href="#blog">Blog</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-links-group">
+        <h4>Categories</h4>
+        <ul>
+          <li><a href="#">Burgers</a></li>
+          <li><a href="#">Pizza</a></li>
+          <li><a href="#">Salads</a></li>
+          <li><a href="#">Pasta</a></li>
+          <li><a href="#">Desserts</a></li>
+          <li><a href="#">Drinks</a></li>
+        </ul>
+      </div>
+      <div class="footer-links-group">
+        <h4>Newsletter</h4>
+        <p class="newsletter-desc">Subscribe and get 15% off your first order!</p>
+        <div class="newsletter">
+          <input type="email" placeholder="Your email..." id="footer-email" />
+          <button id="newsletter-btn">→</button>
+        </div>
+        <ul class="contact-info">
+          <li>📍 123 Food Street, Flavor City</li>
+          <li>📞 +1 (555) 123-4567</li>
+          <li>🕐 Mon–Sun: 9AM – 11PM</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="container footer-bottom-inner">
+      <p>© 2025 FoodFest. All rights reserved.</p>
+      <p>Made with ❤️ for food lovers everywhere</p>
+    </div>
+  </div>
+</footer>
+
+<!-- CART DRAWER -->
+<div class="cart-drawer" id="cart-drawer" role="dialog" aria-label="Shopping cart">
+  <div class="cart-header">
+    <h3>🛒 Your Cart</h3>
+    <button id="close-cart" class="close-cart" aria-label="Close cart">✕</button>
+  </div>
+  <div class="cart-items" id="cart-items">
+    <div class="cart-empty">
+      <div class="empty-icon">🍽️</div>
+      <p>Your cart is empty</p>
+      <small>Add some delicious items!</small>
+    </div>
+  </div>
+  <div class="cart-footer" id="cart-footer">
+    <div class="cart-total-row">
+      <span>Subtotal</span><span>$<span id="cart-total">0.00</span></span>
+    </div>
+    <div class="cart-total-row delivery">
+      <span>Delivery</span><span class="free-tag">FREE</span>
+    </div>
+    <button class="checkout-btn" id="checkout-btn">Checkout 🚀</button>
+  </div>
+</div>
+<div class="cart-overlay" id="cart-overlay"></div>
+
+<!-- SCROLL TO TOP -->
+<button class="scroll-top" id="scroll-top" aria-label="Scroll to top">↑</button>
+
+<!-- TOAST -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
