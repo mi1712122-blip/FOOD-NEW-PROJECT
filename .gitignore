@@ -1,0 +1,11 @@
+# Auto-generated files
+Thumbs.db
+.DS_Store
+desktop.ini
+*.log
+
+# Node (if added later)
+node_modules/
+
+# VS Code
+.vscode/
