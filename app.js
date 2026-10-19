@@ -198,10 +198,14 @@ closeCart.addEventListener('click', closeCartFn);
 cartOverlay.addEventListener('click', closeCartFn);
 document.getElementById('order-now-nav').addEventListener('click', openCart);
 
+// Checkout button opens the rich Firebase-integrated checkout modal
 document.getElementById('checkout-btn').addEventListener('click', () => {
-  if (cart.length === 0) return;
-  showToast('🎉 Order placed! We\'ll deliver in 30 minutes.');
-  cart = []; saveCart(); updateCartUI(); closeCartFn();
+  if (cart.length === 0) {
+    showToast('🍽️ Your cart is empty! Add some delicious dishes first.');
+    return;
+  }
+  closeCartFn();
+  openCheckoutModal();
 });
 
 /* ---- RENDER OFFERS ---- */
@@ -506,7 +510,7 @@ function initHeroObserver() {
   if (heroSection) io.observe(heroSection);
 }
 
-/* ---- FORM ---- */
+/* ---- FORM (FIRESTORE TABLE RESERVATIONS) ---- */
 function initForm() {
   const form = document.getElementById('res-form');
   const success = document.getElementById('form-success');
@@ -521,21 +525,44 @@ function initForm() {
     dateInput.value = today;
   }
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    submitBtn.innerHTML = '<span>Booking...</span>';
+    submitBtn.innerHTML = '<span>Reserving in Kitchen...</span>';
     submitBtn.disabled = true;
     submitBtn.style.opacity = '0.7';
-    setTimeout(() => {
-      submitBtn.innerHTML = '<span>Book My Table</span><span class="btn-arrow">→</span>';
-      submitBtn.disabled = false;
-      submitBtn.style.opacity = '';
+
+    const payload = {
+      name: document.getElementById('res-name').value.trim(),
+      email: document.getElementById('res-email').value.trim(),
+      phone: document.getElementById('res-phone').value.trim(),
+      guests: document.getElementById('res-guests').value,
+      date: document.getElementById('res-date').value,
+      time: document.getElementById('res-time').value
+    };
+
+    const fb = getFirebase();
+    let resResult;
+    if (fb) {
+      resResult = await fb.createReservation(payload);
+    } else {
+      resResult = { success: true, id: 'RES-' + Math.floor(1000 + Math.random()*9000) };
+    }
+
+    submitBtn.innerHTML = '<span>Book My Table</span><span class="btn-arrow">→</span>';
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '';
+    
+    if (resResult && resResult.success) {
+      const refCode = (resResult.id || '').length > 8 ? resResult.id.slice(-6).toUpperCase() : resResult.id;
+      success.textContent = `🎉 Table booked! Ref #${refCode}. Confirmation saved to your profile!`;
       success.classList.add('show');
       form.reset();
       if (dateInput) { dateInput.value = new Date().toISOString().split('T')[0]; }
-      showToast('🎉 Table booked! Confirmation sent to your email.');
-      setTimeout(() => success.classList.remove('show'), 5000);
-    }, 1600);
+      showToast('🎉 Table reserved successfully!');
+      setTimeout(() => success.classList.remove('show'), 6000);
+    } else {
+      showToast('⚠️ Could not complete reservation. Please try again.');
+    }
   });
 }
 
@@ -614,6 +641,12 @@ function initAnimations() {
   initHeroObserver();
   updateCartUI();
 
+  // Initialize Firebase UI Modules
+  initAuthUI();
+  initCheckoutUI();
+  initOrdersDrawer();
+  initReservationsUI();
+
   // Stagger entrance animations for hero content
   document.querySelectorAll('.hero-content > *').forEach((el, i) => {
     el.style.opacity = '0';
@@ -621,4 +654,537 @@ function initAnimations() {
     el.style.transition = `opacity 0.6s ease ${i * 0.12}s, transform 0.6s ease ${i * 0.12}s`;
     setTimeout(() => { el.style.opacity = '1'; el.style.transform = ''; }, 50 + i * 80);
   });
+}
+
+/* =========================================
+   FOODFEST – FIREBASE UI INTEGRATION
+   ========================================= */
+let isSignUpMode = false;
+let currentEtaInterval = null;
+
+function getFirebase() {
+  return window.FoodFestFirebase || null;
+}
+
+/* 1. Setup Auth UI Listeners & Dropdown */
+function initAuthUI() {
+  const navAuthBtn = document.getElementById('nav-auth-btn');
+  const userDropdown = document.getElementById('user-dropdown');
+  const userMenuContainer = document.getElementById('user-menu-container');
+  const authModalOverlay = document.getElementById('auth-modal-overlay');
+  const closeAuthModal = document.getElementById('close-auth-modal');
+  const tabSignIn = document.getElementById('tab-signin');
+  const tabSignUp = document.getElementById('tab-signup');
+  const groupSignupName = document.getElementById('group-signup-name');
+  const authForm = document.getElementById('auth-form');
+  const authActionLabel = document.getElementById('auth-action-label');
+  const authBtnSpinner = document.getElementById('auth-btn-spinner');
+  const authErrorAlert = document.getElementById('auth-error-alert');
+  const googleAuthBtn = document.getElementById('google-auth-btn');
+  const togglePwdBtn = document.getElementById('toggle-pwd-btn');
+  const authPassword = document.getElementById('auth-password');
+  const authForgotLink = document.getElementById('auth-forgot-link');
+  const btnLogout = document.getElementById('btn-logout');
+
+  // Toggle user dropdown or open modal
+  navAuthBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const fb = getFirebase();
+    if (fb && fb.currentUser) {
+      userDropdown.classList.toggle('show');
+    } else {
+      openAuthModal('signin');
+    }
+  });
+
+  // Close dropdown on outside click
+  document.addEventListener('click', (e) => {
+    if (userMenuContainer && !userMenuContainer.contains(e.target)) {
+      userDropdown.classList.remove('show');
+    }
+  });
+
+  // Modal open & close
+  window.openAuthModal = function(mode = 'signin') {
+    setAuthMode(mode === 'signup');
+    authErrorAlert.style.display = 'none';
+    authForm.reset();
+    authModalOverlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  };
+
+  function closeAuthModalFn() {
+    authModalOverlay.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  closeAuthModal.addEventListener('click', closeAuthModalFn);
+  authModalOverlay.addEventListener('click', (e) => {
+    if (e.target === authModalOverlay) closeAuthModalFn();
+  });
+
+  // Switch between Sign In and Sign Up
+  function setAuthMode(signUp) {
+    isSignUpMode = signUp;
+    tabSignIn.classList.toggle('active', !signUp);
+    tabSignUp.classList.toggle('active', signUp);
+    groupSignupName.style.display = signUp ? 'block' : 'none';
+    const nameInput = document.getElementById('auth-name');
+    if (nameInput) nameInput.required = signUp;
+    document.getElementById('auth-modal-title').textContent = signUp ? 'Create Account' : 'Welcome Back';
+    document.getElementById('auth-modal-subtitle').textContent = signUp 
+      ? 'Join FoodFest to earn rewards and track all your orders' 
+      : 'Sign in to track orders, save favorites, and earn rewards';
+    authActionLabel.textContent = signUp ? 'Create Account' : 'Sign In';
+    document.getElementById('auth-options-row').style.display = signUp ? 'none' : 'flex';
+    authErrorAlert.style.display = 'none';
+  }
+
+  tabSignIn.addEventListener('click', () => setAuthMode(false));
+  tabSignUp.addEventListener('click', () => setAuthMode(true));
+
+  // Password visibility toggle
+  togglePwdBtn.addEventListener('click', () => {
+    const isPwd = authPassword.type === 'password';
+    authPassword.type = isPwd ? 'text' : 'password';
+    togglePwdBtn.textContent = isPwd ? '🙈' : '👁️';
+  });
+
+  // Forgot password
+  authForgotLink.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('auth-email').value.trim();
+    if (!email) {
+      showAuthError('Please enter your email above to receive a password reset link.');
+      return;
+    }
+    const fb = getFirebase();
+    if (!fb) return;
+    const res = await fb.resetPassword(email);
+    if (res.success) {
+      showToast('📩 Password reset email sent! Check your inbox.');
+      closeAuthModalFn();
+    } else {
+      showAuthError(res.error);
+    }
+  });
+
+  // Google Sign In
+  googleAuthBtn.addEventListener('click', async () => {
+    const fb = getFirebase();
+    if (!fb) { showToast('Firebase service initializing...'); return; }
+    authBtnSpinner.style.display = 'inline-block';
+    authActionLabel.style.display = 'none';
+    const res = await fb.signInGoogle();
+    authBtnSpinner.style.display = 'none';
+    authActionLabel.style.display = 'inline';
+    if (res.success) {
+      closeAuthModalFn();
+      showToast(`👋 Welcome, ${res.user.displayName || 'Food Lover'}!`);
+    } else {
+      showAuthError(res.error);
+    }
+  });
+
+  // Form submit (Email/Password)
+  authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fb = getFirebase();
+    if (!fb) { showToast('Firebase service initializing...'); return; }
+
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    const name = document.getElementById('auth-name').value.trim();
+
+    authBtnSpinner.style.display = 'inline-block';
+    authActionLabel.style.display = 'none';
+
+    let res;
+    if (isSignUpMode) {
+      res = await fb.signUp(email, password, name);
+    } else {
+      res = await fb.signIn(email, password);
+    }
+
+    authBtnSpinner.style.display = 'none';
+    authActionLabel.style.display = 'inline';
+
+    if (res.success) {
+      closeAuthModalFn();
+      const displayName = res.user.displayName || (name || email.split('@')[0]);
+      showToast(`🎉 ${isSignUpMode ? 'Account created' : 'Signed in'} successfully! Welcome, ${displayName}!`);
+    } else {
+      showAuthError(res.error);
+    }
+  });
+
+  function showAuthError(msg) {
+    authErrorAlert.textContent = msg;
+    authErrorAlert.style.display = 'block';
+  }
+
+  // Sign out
+  btnLogout.addEventListener('click', async () => {
+    const fb = getFirebase();
+    if (fb) {
+      await fb.logout();
+      userDropdown.classList.remove('show');
+      showToast('👋 You have been signed out.');
+    }
+  });
+
+  // Listen to Auth state updates
+  function handleAuthUpdate(user) {
+    const navAuthText = document.getElementById('nav-auth-text');
+    const navAvatarBadge = document.getElementById('nav-avatar-badge');
+    const dropdownAvatar = document.getElementById('dropdown-avatar');
+    const dropdownName = document.getElementById('dropdown-name');
+    const dropdownEmail = document.getElementById('dropdown-email');
+    const logoutDivider = document.getElementById('dropdown-logout-divider');
+    const logoutBtn = document.getElementById('btn-logout');
+
+    if (user) {
+      const name = user.displayName || user.email.split('@')[0];
+      const initial = name.charAt(0).toUpperCase();
+      navAuthText.textContent = name.length > 10 ? name.slice(0, 9) + '…' : name;
+
+      if (user.photoURL) {
+        navAvatarBadge.innerHTML = `<img src="${user.photoURL}" alt="${name}" />`;
+        dropdownAvatar.innerHTML = `<img src="${user.photoURL}" alt="${name}" />`;
+      } else {
+        navAvatarBadge.textContent = initial;
+        dropdownAvatar.textContent = initial;
+      }
+
+      dropdownName.textContent = name;
+      dropdownEmail.textContent = user.email;
+      logoutDivider.style.display = 'block';
+      logoutBtn.style.display = 'flex';
+
+      // Autofill checkout details
+      const coName = document.getElementById('co-name');
+      if (coName && !coName.value && user.displayName) coName.value = user.displayName;
+
+      refreshOrdersBadge();
+    } else {
+      navAuthText.textContent = 'Sign In';
+      navAvatarBadge.textContent = '👤';
+      dropdownAvatar.textContent = '👤';
+      dropdownName.textContent = 'Welcome!';
+      dropdownEmail.textContent = 'Sign in to manage orders';
+      logoutDivider.style.display = 'none';
+      logoutBtn.style.display = 'none';
+      document.getElementById('orders-count-badge').style.display = 'none';
+    }
+  }
+
+  if (window.FoodFestFirebase) {
+    window.FoodFestFirebase.onAuth(handleAuthUpdate);
+  } else {
+    window.addEventListener('foodfest:firebase-ready', () => {
+      window.FoodFestFirebase.onAuth(handleAuthUpdate);
+    });
+  }
+}
+
+/* 2. Setup Checkout & Firestore Orders */
+function initCheckoutUI() {
+  const checkoutModalOverlay = document.getElementById('checkout-modal-overlay');
+  const closeCheckoutModal = document.getElementById('close-checkout-modal');
+  const checkoutForm = document.getElementById('checkout-form');
+  const coBtnSpinner = document.getElementById('co-btn-spinner');
+  const confirmOrderText = document.getElementById('confirm-order-text');
+
+  window.openCheckoutModal = function() {
+    renderCheckoutSummary();
+    const fb = getFirebase();
+    if (fb && fb.currentUser) {
+      const coName = document.getElementById('co-name');
+      if (coName && !coName.value) coName.value = fb.currentUser.displayName || '';
+    }
+    checkoutModalOverlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  };
+
+  function closeCheckoutModalFn() {
+    checkoutModalOverlay.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  closeCheckoutModal.addEventListener('click', closeCheckoutModalFn);
+  checkoutModalOverlay.addEventListener('click', (e) => {
+    if (e.target === checkoutModalOverlay) closeCheckoutModalFn();
+  });
+
+  // Render items in Checkout summary
+  function renderCheckoutSummary() {
+    const list = document.getElementById('checkout-summary-items');
+    const subtotalEl = document.getElementById('co-subtotal');
+    const totalEl = document.getElementById('co-total');
+    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+    list.innerHTML = cart.map(item => `
+      <div class="co-item-row">
+        <img src="${item.img}" alt="${item.name}" class="co-item-img" />
+        <div class="co-item-info">
+          <div class="co-item-name">${item.name}</div>
+          <div class="co-item-qty">Qty: ${item.qty} × $${item.price.toFixed(2)}</div>
+        </div>
+        <div class="co-item-price">$${(item.price * item.qty).toFixed(2)}</div>
+      </div>
+    `).join('');
+
+    subtotalEl.textContent = `$${total.toFixed(2)}`;
+    totalEl.textContent = `$${total.toFixed(2)}`;
+    confirmOrderText.textContent = `Place Order ($${total.toFixed(2)}) 🚀`;
+  }
+
+  // Payment radio option highlight
+  document.querySelectorAll('.pay-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.pay-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+    });
+  });
+
+  // Confirm and Place Order -> Firestore
+  checkoutForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (cart.length === 0) return;
+
+    const fb = getFirebase();
+    coBtnSpinner.style.display = 'inline-block';
+    confirmOrderText.style.display = 'none';
+
+    const selectedPayment = document.querySelector('input[name="payment_type"]:checked')?.value || 'Cash on Delivery';
+    const totalAmount = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+    const orderPayload = {
+      customer: {
+        name: document.getElementById('co-name').value.trim(),
+        phone: document.getElementById('co-phone').value.trim(),
+        address: document.getElementById('co-address').value.trim(),
+        notes: document.getElementById('co-notes').value.trim(),
+        email: fb && fb.currentUser ? fb.currentUser.email : ''
+      },
+      paymentMethod: selectedPayment,
+      items: [...cart],
+      totalAmount
+    };
+
+    let orderResult;
+    if (fb) {
+      orderResult = await fb.createOrder(orderPayload);
+    } else {
+      orderResult = { success: true, id: 'FF-' + Math.floor(1000 + Math.random() * 9000) };
+    }
+
+    coBtnSpinner.style.display = 'none';
+    confirmOrderText.style.display = 'inline';
+
+    if (orderResult && orderResult.success) {
+      cart = [];
+      saveCart();
+      updateCartUI();
+      checkoutForm.reset();
+      closeCheckoutModalFn();
+
+      showOrderSuccess(orderResult.id, totalAmount);
+      refreshOrdersBadge();
+    } else {
+      showToast('⚠️ Could not complete order: ' + (orderResult?.warning || 'Please try again.'));
+    }
+  });
+}
+
+/* 3. Setup Order Success & Live Tracker Modal */
+function showOrderSuccess(orderId, total) {
+  const successModalOverlay = document.getElementById('order-success-modal-overlay');
+  const codeEl = document.getElementById('success-order-code');
+  const etaEl = document.getElementById('eta-countdown');
+  const btnClose = document.getElementById('btn-close-order-success');
+  const btnViewOrders = document.getElementById('btn-view-my-orders-from-modal');
+
+  const formattedId = (orderId || '').length > 8 ? orderId.slice(-6).toUpperCase() : orderId;
+  codeEl.textContent = `ORDER #FF-${formattedId}`;
+
+  // Start 30 min countdown
+  if (currentEtaInterval) clearInterval(currentEtaInterval);
+  let secondsLeft = 29 * 60 + 45;
+  const updateTimer = () => {
+    const mins = Math.floor(secondsLeft / 60);
+    const secs = secondsLeft % 60;
+    etaEl.textContent = `${mins}:${secs < 10 ? '0' : ''}${secs} mins`;
+    if (secondsLeft > 0) secondsLeft--;
+  };
+  updateTimer();
+  currentEtaInterval = setInterval(updateTimer, 1000);
+
+  successModalOverlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+
+  const closeSuccess = () => {
+    successModalOverlay.classList.remove('show');
+    document.body.style.overflow = '';
+  };
+
+  btnClose.onclick = () => {
+    closeSuccess();
+    document.getElementById('menu').scrollIntoView({ behavior: 'smooth' });
+  };
+
+  btnViewOrders.onclick = () => {
+    closeSuccess();
+    openOrdersDrawer();
+  };
+
+  successModalOverlay.onclick = (e) => {
+    if (e.target === successModalOverlay) closeSuccess();
+  };
+}
+
+/* 4. Setup My Orders Drawer */
+function initOrdersDrawer() {
+  const btnOpen = document.getElementById('btn-open-orders');
+  const drawer = document.getElementById('orders-drawer');
+  const overlay = document.getElementById('orders-drawer-overlay');
+  const closeBtn = document.getElementById('close-orders-drawer');
+
+  btnOpen.addEventListener('click', () => {
+    document.getElementById('user-dropdown').classList.remove('show');
+    openOrdersDrawer();
+  });
+
+  function closeOrdersDrawer() {
+    drawer.classList.remove('open');
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  closeBtn.addEventListener('click', closeOrdersDrawer);
+  overlay.addEventListener('click', closeOrdersDrawer);
+
+  window.openOrdersDrawer = async function() {
+    drawer.classList.add('open');
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    await renderOrdersList();
+  };
+}
+
+async function renderOrdersList() {
+  const container = document.getElementById('orders-drawer-body');
+  const countBadge = document.getElementById('orders-drawer-count');
+  container.innerHTML = '<div style="text-align:center;padding:30px;"><div class="btn-spinner" style="margin:0 auto;border-color:var(--orange);border-top-color:transparent;"></div><p style="margin-top:10px;font-size:13px;color:#777;">Loading orders from Firestore...</p></div>';
+
+  const fb = getFirebase();
+  const orders = fb ? await fb.getUserOrders() : JSON.parse(localStorage.getItem('foodfest_saved_orders') || '[]');
+
+  countBadge.textContent = orders.length;
+
+  if (orders.length === 0) {
+    container.innerHTML = `
+      <div class="drawer-empty-state">
+        <div class="empty-emoji">🍕</div>
+        <h4>No orders yet</h4>
+        <p>Your delicious food orders will appear here with live tracking status!</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = orders.map(ord => {
+    const dateStr = ord.localDate ? new Date(ord.localDate).toLocaleDateString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : 'Recently';
+    const itemsPreview = (ord.items || []).map(i => `${i.qty}× ${i.name}`).join(', ');
+    const code = (ord.id || '').length > 8 ? ord.id.slice(-6).toUpperCase() : ord.id;
+    return `
+      <div class="order-history-card">
+        <div class="order-card-header">
+          <span class="order-card-id">#FF-${code}</span>
+          <span class="order-card-status preparing">👨‍🍳 In Kitchen</span>
+        </div>
+        <div class="order-card-items-preview">${itemsPreview || 'Delightful food selection'}</div>
+        <div class="order-card-footer">
+          <span>🕒 ${dateStr}</span>
+          <span class="order-card-total">$${Number(ord.totalAmount || 0).toFixed(2)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function refreshOrdersBadge() {
+  const badge = document.getElementById('orders-count-badge');
+  const fb = getFirebase();
+  if (fb) {
+    const orders = await fb.getUserOrders();
+    if (orders.length > 0) {
+      badge.textContent = orders.length;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
+/* 5. Setup Table Bookings Drawer */
+function initReservationsUI() {
+  const btnOpen = document.getElementById('btn-open-reservations');
+  const drawer = document.getElementById('reservations-drawer');
+  const overlay = document.getElementById('reservations-drawer-overlay');
+  const closeBtn = document.getElementById('close-reservations-drawer');
+
+  btnOpen.addEventListener('click', () => {
+    document.getElementById('user-dropdown').classList.remove('show');
+    openReservationsDrawer();
+  });
+
+  function closeReservationsDrawer() {
+    drawer.classList.remove('open');
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  closeBtn.addEventListener('click', closeReservationsDrawer);
+  overlay.addEventListener('click', closeReservationsDrawer);
+
+  window.openReservationsDrawer = async function() {
+    drawer.classList.add('open');
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    await renderReservationsList();
+  };
+}
+
+async function renderReservationsList() {
+  const container = document.getElementById('reservations-drawer-body');
+  const countBadge = document.getElementById('res-drawer-count');
+  container.innerHTML = '<div style="text-align:center;padding:30px;"><div class="btn-spinner" style="margin:0 auto;border-color:var(--orange);border-top-color:transparent;"></div><p style="margin-top:10px;font-size:13px;color:#777;">Loading reservations...</p></div>';
+
+  const fb = getFirebase();
+  const bookings = fb ? await fb.getUserReservations() : JSON.parse(localStorage.getItem('foodfest_saved_reservations') || '[]');
+
+  countBadge.textContent = bookings.length;
+
+  if (bookings.length === 0) {
+    container.innerHTML = `
+      <div class="drawer-empty-state">
+        <div class="empty-emoji">🍽️</div>
+        <h4>No reservations yet</h4>
+        <p>Reserve a table for your next dine-in experience and view confirmations here!</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = bookings.map(res => `
+    <div class="reservation-history-card">
+      <div class="res-card-header">
+        <span class="res-card-title">🍽️ Table for ${res.guests || '2 People'}</span>
+        <span class="res-card-badge">Confirmed</span>
+      </div>
+      <div class="res-card-meta">👤 Reserved for: <strong>${res.name}</strong></div>
+      <div class="res-card-time">📅 ${res.date} at ⏰ ${res.time}</div>
+    </div>
+  `).join('');
 }
