@@ -13,7 +13,7 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "   FoodFest Auto-Push Watcher" -ForegroundColor Yellow
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "  Watching: $projectPath" -ForegroundColor White
-Write-Host "  Remote  : https://github.com/mi1712122-blip/my-first-on-anti-gravity.git" -ForegroundColor White
+Write-Host "  Remote  : https://github.com/mi1712122-blip/FOOD-NEW-PROJECT.git" -ForegroundColor White
 Write-Host "  Debounce: $debounceSeconds seconds after last change" -ForegroundColor White
 Write-Host "  Press Ctrl+C to stop." -ForegroundColor DarkGray
 Write-Host ""
@@ -92,7 +92,7 @@ function Push-ToGitHub($changedFile) {
     $pushResult = git push origin main 2>&1
     if ($LASTEXITCODE -eq 0) {
         Write-Host "  [SUCCESS] Pushed! Commit: `"$commitMsg`"" -ForegroundColor Green
-        Write-Host "  View at: https://github.com/mi1712122-blip/my-first-on-anti-gravity" -ForegroundColor DarkGray
+        Write-Host "  View at: https://github.com/mi1712122-blip/FOOD-NEW-PROJECT" -ForegroundColor DarkGray
     } else {
         Write-Host "  [ERROR] git push failed: $pushResult" -ForegroundColor Red
     }
